@@ -2,6 +2,12 @@
 
 A scheam-first postgres cli migration tool.
 
+```bash
+go install github.com/aecsar/drift@latest
+
+drift --help
+```
+
 ## Why?
 
 The way I like to work when it comes to database migrations is to have a single
