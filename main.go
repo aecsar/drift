@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/aecsar/drift"
+	"github.com/aecsar/drift/drift"
 )
 
 var (
