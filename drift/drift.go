@@ -33,11 +33,7 @@ type Config struct {
 	MigrationsDir string
 }
 
-var config Config
-
 func Generate(name string, cfg Config) error {
-	config = cfg
-
 	ctx := context.Background()
 
 	container, connStr, err := startContainer(ctx)
@@ -47,14 +43,14 @@ func Generate(name string, cfg Config) error {
 	defer terminateContainer(container)
 
 	fmt.Println("Applying existing migrations...")
-	if err := applyMigrations(ctx, connStr); err != nil {
+	if err := applyMigrations(ctx, connStr, cfg.MigrationsDir); err != nil {
 		return fmt.Errorf("apply migrations: %w", err)
 	}
 
 	fmt.Println("Reading target schema...")
-	schemaSQL, err := os.ReadFile(config.SchemaFile)
+	schemaSQL, err := os.ReadFile(cfg.SchemaFile)
 	if err != nil {
-		return fmt.Errorf("read schema file %#v: %w", config.SchemaFile, err)
+		return fmt.Errorf("read schema file %#v: %w", cfg.SchemaFile, err)
 	}
 
 	fmt.Println("Generating migration diff...")
@@ -69,7 +65,7 @@ func Generate(name string, cfg Config) error {
 	}
 
 	outfile := filepath.Join(
-		config.MigrationsDir,
+		cfg.MigrationsDir,
 		fmt.Sprintf("%s_%s.sql", time.Now().Format("20060102150405"), name),
 	)
 
@@ -122,7 +118,7 @@ func terminateContainer(container *postgres.PostgresContainer) {
 	}
 }
 
-func applyMigrations(ctx context.Context, connStr string) error {
+func applyMigrations(ctx context.Context, connStr, migrationsDir string) error {
 	conn, err := pgx.Connect(ctx, connStr)
 	if err != nil {
 		return fmt.Errorf("connect to temporary database: %w", err)
@@ -133,7 +129,7 @@ func applyMigrations(ctx context.Context, connStr string) error {
 		}
 	}()
 
-	entries, err := os.ReadDir(config.MigrationsDir)
+	entries, err := os.ReadDir(migrationsDir)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil
@@ -144,7 +140,7 @@ func applyMigrations(ctx context.Context, connStr string) error {
 	var files []string
 	for _, e := range entries {
 		if !e.IsDir() && strings.HasSuffix(e.Name(), ".sql") {
-			files = append(files, filepath.Join(config.MigrationsDir, e.Name()))
+			files = append(files, filepath.Join(migrationsDir, e.Name()))
 		}
 	}
 	sort.Strings(files)
